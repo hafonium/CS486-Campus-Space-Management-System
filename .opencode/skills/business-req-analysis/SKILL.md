@@ -57,13 +57,31 @@ The agent must produce these sections in order:
 - Identify rule-like statements such as “must”, “cannot”, “should”, “may”, and “only”.
 
 ### Step 2: Identify the business purpose
-Write 1 short paragraph explaining:
-- why the organization wants the system,
-- what operational problems it solves,
-- and what high-level outcomes it supports.
+Write a concise business-purpose paragraph of 2–3 sentences.
 
-Do not mention database tables in this section.
-Focus on business value and operational control.
+The paragraph must answer all three questions:
+- Why does the organization need this system?
+- What operational problem(s) does it solve?
+- What business outcome(s) does it support?
+
+The paragraph must:
+- summarize the requirement in distilled form,
+- focus on organizational purpose and operational control,
+- use plain business language,
+- avoid implementation details such as tables, SQL, or database structure.
+
+The paragraph must not:
+- copy or closely paraphrase the requirement text,
+- list features without explaining their purpose,
+- describe entity names or schema concepts,
+- repeat background details that do not change the core purpose.
+
+Good pattern:
+"The system is needed to centralize and control the booking and operational management of shared campus spaces. It solves the current manual coordination problems such as double-booking, unclear approvals, and poor visibility into maintenance status. It supports fair space allocation, operational efficiency, and historical tracking for planning and oversight."
+
+Bad pattern:
+"This system manages spaces, bookings, approvals, maintenance, and facility utilization." 
+This is only a feature restatement, not a business-purpose summary.
 
 ### Step 3: Identify actors
 List all human or organizational actors that interact with the system.
