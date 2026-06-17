@@ -1,5 +1,5 @@
 ---
-name: business-requirement-analysis-db
+name: business-req-analysis
 description: Analyze a database project brief and produce a structured Business Requirement Analysis for conceptual database design. Use this skill when the user asks to identify business purpose, actors, entities, attributes, relationships, cardinalities, participation constraints, and business rules from a case description.
 ---
 
