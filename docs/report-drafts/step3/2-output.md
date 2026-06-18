@@ -175,12 +175,12 @@ Ref: SPACE_FACILITY.facility_id > FACILITY.facility_id [delete: cascade]
 | FK Column | Child Table | Parent Table | PK Column | Nullable | Delete Behavior |
 |---|---|---|---|---|---|
 | `requester_id` | BOOKING | USER | `user_id` | No (mandatory) | RESTRICT |
-| `decision_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | RESTRICT |
-| `check_in_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | RESTRICT |
-| `completion_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | RESTRICT |
+| `decision_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | SET NULL / RESTRICT |
+| `check_in_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | SET NULL / RESTRICT |
+| `completion_staff_id` | BOOKING | USER | `user_id` | Yes (optional) | SET NULL / RESTRICT |
 | `space_code` | BOOKING | SPACE | `space_code` | No (mandatory) | RESTRICT |
 | `reporter_id` | MAINTENANCE_RECORD | USER | `user_id` | No (mandatory) | RESTRICT |
-| `assigned_staff_id` | MAINTENANCE_RECORD | USER | `user_id` | Yes (optional) | RESTRICT |
+| `assigned_staff_id` | MAINTENANCE_RECORD | USER | `user_id` | Yes (optional) | SET NULL / RESTRICT |
 | `space_code` | MAINTENANCE_RECORD | SPACE | `space_code` | No (mandatory) | RESTRICT |
 | `space_code` | SPACE_FACILITY | SPACE | `space_code` | No (PK member) | CASCADE |
 | `facility_id` | SPACE_FACILITY | FACILITY | `facility_id` | No (PK member) | CASCADE |
