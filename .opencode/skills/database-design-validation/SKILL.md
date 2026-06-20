@@ -1,0 +1,109 @@
+---
+name: database-design-validation
+description: Validate the first three database-design artifacts for consistency, including requirements, conceptual models, and relational schemas.
+---
+
+# Database Design Validation
+
+## Purpose
+This skill is a reusable Step 4 validation framework in a 7-step database-design workflow.
+
+It checks the first three outputs produced earlier in the workflow: requirements analysis, conceptual ERD design, and logical database design.
+
+It helps the agent evaluate whether those outputs are mutually consistent, correctly represent the source requirements, and use appropriate keys, relationships, constraints, and business-rule handling.
+
+The only source of truth for this step is the current requirements analysis output, the current conceptual ERD output, and the current logical database design output.
+
+The agent must inspect each of the first three outputs carefully and independently before forming a conclusion. Do not assume a pass from one matching section; verify structure, keys, domains, constraints, and business-rule handling step by step.
+
+The final output must be minimal and error-focused: report only actual inconsistencies, explain why each one is a problem, and state what should be corrected. Do not include a full audit, pass checklist, or section-by-section confirmation when there are no errors.
+
+## When to use
+Use this skill when:
+- the user is at the validation step after requirements analysis, ERD design, and logical design,
+- the user asks to validate whether the first three database-design outputs are consistent,
+- the task is specifically designated as "Database Design Validation".
+
+Do not use this skill when:
+- the user only wants ERD generation,
+- the user only wants logical schema generation,
+- the user wants SQL implementation or sample data.
+
+## Inputs
+The agent should expect:
+- The requirements analysis output.
+- The conceptual ERD output.
+- The logical database design output.
+
+## Workflow
+
+### 1. Check structural mapping
+- Compare the requirements output, the conceptual ERD output, and the logical design output separately before judging consistency.
+- Verify every conceptual entity appears in the logical design.
+- Verify every conceptual relationship appears in the logical design.
+- Verify every M:N relationship is resolved using an appropriate junction table.
+
+### 2. Check keys and relationships
+- Check each table and each relationship role individually; do not treat one correct key as proof that the rest are correct.
+- Verify each table has a correct primary key.
+- Verify foreign keys are placed on the correct side of the relationship.
+- Verify candidate keys, unique constraints, and multi-role foreign keys are correctly defined.
+
+### 3. Check domains and constraints
+- Validate each domain rule, enum, default, and nullability rule on its own.
+- Verify data types, NOT NULL rules, enums, defaults, and other declared constraints match the business rules.
+- Verify that status values and role values are constrained consistently.
+
+### 4. Check business-rule and logic implementation strategy
+- Check each business rule one by one and decide whether it is structural, procedural, or missing.
+- **Native Structural Enforcement:** Verify that standalone business rules (e.g., value boundaries, strict uniqueness) are appropriately enforced using built-in schema features like `CHECK` constraints or composite `UNIQUE` indexes.
+- **Procedural Logic Identification:** Identify complex business rules that exceed basic structural capabilities. Look specifically for:
+  - *Cross-table validations* (rules requiring data from multiple tables).
+  - *Temporal constraints* (time-based overlaps, sequential event ordering).
+  - *State machine constraints* (strict lifecycles or restricted status transitions).
+- **Delegation Requirement:** For the complex rules identified above, explicitly state whether they should be enforced via database triggers, stored procedures, or handled at the application layer.
+- If the input contains only a schema and no requirements, validate the schema for internal consistency and note any requirement-dependent gaps that cannot be confirmed.
+
+### 5. Report all issues
+- List every inconsistency found.
+- Group issues by category.
+- For each issue, explain what is wrong and how the schema should be fixed.
+- If no issues are found, state only: `No errors found.`
+
+### 6. Decision Rule
+- If any mismatch, missing constraint, incorrect nullability, wrong enum value, wrong relationship, or unsupported business rule is found, the result must be `VALIDATION FAILED`.
+- Only use `VALIDATION PASSED` when the three outputs are aligned and every checked rule is accounted for.
+- When uncertain, treat it as a finding and report it instead of passing it.
+- Do not infer correctness from partial matches; if any checked item cannot be confirmed against the current three outputs, fail the validation and report it.
+
+## Output template
+When producing the validation deliverable, write the result into the requested output file (or `outputs/design-validation.md` if no specific path is provided) and use this exact structure.
+
+### 1. Validation Status
+* Select only one:
+  - **VALIDATION PASSED**: The schema is fully consistent with the ERD and business rules.
+  - **VALIDATION FAILED**: Inconsistencies detected. Action required.
+
+### 2. Findings & Resolution Plan
+* If passed, write only: `No errors found.`
+* If failed, list every issue in a table. Do not add extra commentary outside the table.
+
+| Category | Description of Inconsistency | Source of Truth (ERD/Req) | Recommended Fix for Schema |
+| :--- | :--- | :--- | :--- |
+| [Category] | [Problem] | [ERD or Requirement] | [Fix] |
+
+### 3. Action Required
+* State the exact next step, such as returning to the schema design phase to apply the recommended fixes.
+
+## Output Style Rules
+- Do not summarize correct sections of the schema unless they are needed to explain an inconsistency.
+- Do not include observation-only notes that do not change the validation result.
+- Do not add separate review checklists or procedural-enforcement appendices unless the user explicitly asks for them.
+
+## Review checklist
+Before finishing, verify:
+- all entities and relationships are represented correctly,
+- keys and foreign keys are consistent,
+- constraints and defaults match the requirements,
+- complex business rules are identified clearly as procedural when needed,
+- every inconsistency is listed explicitly in the findings table.
