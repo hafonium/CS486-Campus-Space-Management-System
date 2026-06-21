@@ -36,4 +36,16 @@
 * Make any nullability mismatch, enum mismatch, or relationship mismatch an explicit failure, even if the rest of the schema looks valid.
 * Regenerate the validation output whenever Step 3 changes, so the report cannot stay on an outdated pass result.
 
+### Iteration 5
+
+#### 1. Issues Encountered
+* **False-positive flagging of application-layer business rule as a database gap:** The agent flagged Business Rule 1 ("Each user must have a valid university account to interact with the system") as an unaddressed schema gap, recommending additions to the Procedural Enforcement section. However, this rule pertains to external authentication (SSO/LDAP) enforced at the application layer, not the database schema. The logical design already enforces uniqueness on `email` and `phone_number`; independent university account validation is out of scope for database design.
+
+#### 2. Root Cause
+* The validation prompt lacked a clear scope boundary distinguishing between database-enforceable rules (uniqueness, nullability, referential integrity) and external application-layer rules (authentication, authorization, UI validation). The agent treated all Business Rules as equally enforceable within the database schema.
+* The agent exhibited over-capture behaviour: treating every Business Rule as a database-enforceable concern without filtering out application-layer rules, resulting in false-positive validation failures.
+
+#### 3. Resolution
+* Add a scope classification to the Step 4 skill: categorize each Business Rule as either "Database-Enforceable" (must appear in schema constraints or Procedural Enforcement) or "Application-Layer" (excluded from DB validation scope, noted for awareness only).
+* Calibrate the validation prompt to apply a "scope filter" before flagging: if a Business Rule describes external authentication, authorization logic, or UI-level validation, classify it as Application-Layer and exclude it from the DB validation failure list.
 
