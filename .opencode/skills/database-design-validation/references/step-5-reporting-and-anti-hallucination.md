@@ -63,7 +63,7 @@ Before writing the final output, answer these five questions. Each must be answe
 1. **FK tracing:** Did I verify every schema FK against an ERD relationship line **and** check its nullability against the Mermaid cardinality symbol?
    - Evidence: ___
 
-2. **Enum verification:** Did I compare every schema enum value — exact spelling, character-by-character — against the BR and ERD value lists?
+2. **Enum verification:** Did I compare every schema enum value against the BR and ERD value lists after applying the prose-to-code normalization rule from step-3? The BR is an analyst document using human-readable prose (spaces in multi-word values); the ERD and logical design are code documents using DDL-safe identifiers (underscores). Only flag mismatches where normalized values still differ — encoding differences (space ↔ underscore) are not semantic mismatches.
    - Evidence: ___
 
 3. **FK summary cross-check:** Did I compare every row in the FK summary table against its corresponding schema FK declaration and column constraint?

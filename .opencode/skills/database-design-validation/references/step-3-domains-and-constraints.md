@@ -5,9 +5,14 @@
 For every enumerated domain or set of allowed values in the schema:
 1. List every value in the schema's definition. (In DBML, look in `Enum` blocks; in SQL DDL, look in `CHECK` constraints or `DOMAIN` definitions; in ER diagrams, look in the data dictionary.)
 2. Find the corresponding value list in the BR (Section 5 candidate attributes) or ERD data dictionary.
-3. Compare value-by-value, character-by-character. Underscores, casing, spelling — everything must match exactly.
-4. If a schema value does not appear in the BR/ERD source, record a finding.
-5. If a BR/ERD value is missing from the schema, record a finding.
+3. Compare value-by-value. Before flagging a mismatch, apply this normalization:
+   a. Replace all spaces (and multiple consecutive spaces) with underscores in both sources.
+   b. Compare the normalized values.
+   c. Only flag when the normalized values still differ.
+
+   **Rationale:** BR documents describe values in human-readable prose (e.g., `"teaching assistant"`, `"in progress"`). ERD and logical design encode those same values as DDL-safe identifiers without spaces (e.g., `"teaching_assistant"`, `"in_progress"`). This encoding difference is required by SQL syntax, not a change in business meaning. Normalization prevents false positives from this unavoidable prose-to-code translation.
+4. If a normalized schema value does not appear in the normalized BR/ERD source, record a finding.
+5. If a normalized BR/ERD value is missing from the normalized schema, record a finding.
 
 Additionally, check the logical design's own prose for references to enum values (e.g., Section 4 Procedural Enforcement may reference a value like `disabled`). If the prose references a value by name and the schema uses a different name, that is an internal inconsistency.
 

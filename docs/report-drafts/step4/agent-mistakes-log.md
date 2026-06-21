@@ -49,3 +49,15 @@
 * Add a scope classification to the Step 4 skill: categorize each Business Rule as either "Database-Enforceable" (must appear in schema constraints or Procedural Enforcement) or "Application-Layer" (excluded from DB validation scope, noted for awareness only).
 * Calibrate the validation prompt to apply a "scope filter" before flagging: if a Business Rule describes external authentication, authorization logic, or UI-level validation, classify it as Application-Layer and exclude it from the DB validation failure list.
 
+### Iteration 7
+
+#### 1. Issues Encountered
+* **False-positive flagging of space-vs-underscore in domain values:** The validation flagged the BR's use of spaces in multi-word role values (e.g., `"teaching assistant"`) as a mismatch against the ERD and logical design's use of underscores (e.g., `"teaching_assistant"`). The same occurred for maintenance status: BR line 66 `"in_progress"` vs. BR line 156 `"in progress"`. However, SQL DDL identifiers and CHECK constraint literals cannot contain spaces, so underscores are the required DDL-safe encoding. The BR's natural-language formatting with spaces is semantically equivalent and does not represent a real discrepancy.
+
+#### 2. Root Cause
+* `step-3-domains-and-constraints.md` enforced a strict character-by-character comparison (line 8: "Compare value-by-value, character-by-character. Underscores, casing, spelling — everything must match exactly.") without accounting for the unavoidable prose-to-code encoding gap. BR documents use human-readable spacing in informal prose; ERD and logical design encode those same values as DDL-safe identifiers without spaces. The agent followed the literal "exact match" rule and treated the same semantic value expressed in two contexts (human-readable vs. machine-readable) as different strings.
+
+#### 3. Resolution
+* Replace the rigid character-by-character comparison in `references/step-3-domains-and-constraints.md` with a normalization step: convert all spaces to underscores before comparing values. Only flag when the normalized values still differ.
+* This generalizes beyond the specific role/maintenance-status case to any multi-word domain value (e.g., `"no show"` → `"no_show"`, `"checked in"` → `"checked_in"`).
+
