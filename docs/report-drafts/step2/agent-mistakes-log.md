@@ -27,3 +27,14 @@
 #### 3. Resolution
 * Modify `SKILL.md` to include a new Step 5 in the Workflow, instructing the agent to actively analyze its structural changes and verb refinements.
 * Introduce a mandatory Design Notes section within the Output template to guarantee the justifications are rendered in the final file.
+
+### Iteration 3
+
+#### 1. Issues Encountered
+* **Missing relationship syntax:** The agent failed to demonstrate which relationship should be optional and which one should be mandatory.
+
+#### 2. Root Cause
+* `references/mermaid-syntax-guide.md` only included three main relationships without option and mandatory choices. 
+
+#### 3. Resolution
+* Add more relationship choices to `references/mermaid-syntax-guide.md` and ask the agent to choose and capture optional and mandatory relationships.

@@ -8,10 +8,29 @@ Format the conceptual design into a strictly valid Mermaid.js string that can be
 - Do not use markdown bolding (`**`) or italics (`*`) inside the Mermaid code block.
 
 ## Relationship Syntax & Directionality
-Use exact Mermaid operators for connections:
-- `||--||` : One-to-One
-- `||--o{` : One-to-Many
-- `}|--|{` : Many-to-Many
+Use exact Mermaid operators for connections, ensuring you capture both mandatory (`|`) and optional (`o`) constraints:
+
+**One-to-One (1:1)**
+- `||--||` : Exactly One to Exactly One
+- `|o--||` : Zero or One to Exactly One
+- `||--o|` : Exactly One to Zero or One
+- `|o--o|` : Zero or One to Zero or One
+
+**One-to-Many (1:N)**
+- `||--|{` : Exactly One to One or More
+- `||--o{` : Exactly One to Zero or More
+- `|o--|{` : Zero or One to One or More
+- `|o--o{` : Zero or One to Zero or More
+
+**Many-to-Many (M:N)**
+- `}|--|{` : One or More to One or More
+- `}o--o{` : Zero or More to Zero or More
+- `}|--o{` : One or More to Zero or More
+- `}o--|{` : Zero or More to One or More
+
+**Connecting Lines**
+- `--` : Solid line (Identifying relationship)
+- `..` : Dashed line (Non-identifying relationship)
 
 **Readability Rule (Left-to-Right Layout):**
 Mermaid draws diagrams based on the order entities are declared. To make the diagram readable, always place the **independent/parent entity on the left**, and the **dependent/child entity on the right**.
