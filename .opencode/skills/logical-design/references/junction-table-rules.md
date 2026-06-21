@@ -1,10 +1,26 @@
-# Junction Table (M:N) Resolution Guide
+# Reference: Associative Junction Table Rules (M:N Resolution)
 
-## Core Rule
-Relational databases cannot natively implement Many-to-Many (M:N) relationships. Every M:N relationship (e.g., `SPACE }|--|{ FACILITY`) in the Conceptual ERD must be broken down into an associative entity (junction table).
+## 1. Decomposition Mandate
+Whenever a conceptual Many-to-Many (`M:N`) relationship exists between two entities, it must be decomposed into a 3NF Associative Junction Table.
 
-## Rules for Creating Junction Tables
-1. **Table Creation:** Create a brand new table.
-2. **Table Naming:** Name the table by combining the names of the two related entities in UPPER_SNAKE_CASE (e.g., `SPACE_FACILITY`).
-3. **Composite Primary Key:** The Primary Key of this new table must be a Composite Key consisting of the Primary Keys of the two parent entities.
-4. **Foreign Key Constraints:** Both columns forming the composite primary key also act as Foreign Keys pointing back to their respective parent tables.
+## 2. Strict DDL Structural Rules
+1. **No Surrogate Primary Keys:** A pure junction table must **never** declare a standalone auto-incrementing primary key (e.g., `junction_id integer [pk, increment]`). 
+2. **Composite Primary Key:** Entity integrity must be enforced by combining the participating foreign keys into a composite primary key declared inside an explicit `Indexes` block.
+3. **Mandatory Participation:** All participating foreign key columns must be explicitly typed as `[not null]`.
+4. **Cascading Obliteration:** Because the junction tuple possesses no independent existential meaning outside of its parent entities, all foreign key reference definitions must carry `[delete: cascade]`.
+
+## 3. Benchmark Implementation Standard
+```dbml
+Table ENTITY_A_ENTITY_B {
+  entity_a_id integer [not null]
+  entity_b_code varchar(50) [not null]
+
+  Indexes {
+    (entity_a_id, entity_b_code) [pk]
+  }
+}
+
+// Global declarations at the bottom:
+Ref: ENTITY_A_ENTITY_B.entity_a_id > ENTITY_A.id [delete: cascade]
+Ref: ENTITY_A_ENTITY_B.entity_b_code > ENTITY_B.code [delete: cascade]
+```

@@ -1,18 +1,24 @@
-# Foreign Key Placement Guide
+# Reference: Foreign Key Placement & Referential Semantics
 
-## Core Rule
-Foreign keys (FKs) are used to map 1:N and 1:1 relationships. They must never be used to map M:N relationships.
+## 1. Topological Declaration (Global End-Block)
+Foreign keys **must never** be declared inline inside table attribute lists (e.g., `fk_id int [ref: > PARENT.id]`). They must be aggregated globally under a dedicated `// --- Relationships ---` header at the absolute bottom of the DBML script.
+* **Standard Syntax:** `Ref: CHILD_TABLE.fk_column > PARENT_TABLE.pk_column`
 
-## Rules for 1:N Relationships
-1. **Identify the "Many" side:** In a 1:N relationship, the entity on the "Many" (N) side receives the Foreign Key.
-2. **Map the Key:** Take the Primary Key from the "One" (1) side and add it as a column to the "Many" side table.
-3. **Nullability:** If participation is mandatory on the N side (`||--`), the FK must be `NOT NULL`. If optional (`|o--`), the FK must be nullable.
+## 2. Referential Delete Semantics (T-SQL Standard)
+* **Standard Base Entities (The RESTRICT / NO ACTION rule):**
+  To preserve institutional audit trails and satisfy historical immutability requirements, standard operational entities must never cascade deletes. 
+  * *In DBML:* Omit delete modifiers entirely. (This falls back to T-SQL's native `ON DELETE NO ACTION`, acting as logical `RESTRICT`).
+  * *In Section 2 (Foreign Keys table):* Document the Delete Behavior explicitly as **RESTRICT**.
+* **Associative Entities (The CASCADE rule):**
+  Applies **strictly** to pure intermediate junction tables representing resolved M:N relationships.
+  * *In DBML:* `Ref: JUNCTION_TABLE.fk_a > PARENT_A.pk [delete: cascade]`
+  * *In Section 2 (Foreign Keys table):* Document explicitly as **CASCADE**.
 
-## Rules for Multi-Role Relationships (CRITICAL)
-If two entities have multiple distinct relationships between them (e.g., `USER` and `BOOKING`), you cannot use the standard primary key name for all of them. Doing so causes column name collisions.
-1. **Rename based on role:** Add a descriptive prefix to the foreign key column name indicating the role.
-2. **Example mapping:**
-   - Relationship "submits": FK = `requester_id`
-   - Relationship "decides on": FK = `decision_staff_id`
-   - Relationship "checks in": FK = `check_in_staff_id`
-   - Relationship "completes": FK = `completion_staff_id`
+## 3. Multi-Role Disambiguation
+When Table A references Table B multiple times for distinct operational purposes, the foreign key columns in Table A must be named strictly after their specific functional role, **not** the target table's name.
+* *Example:* A transaction requires a submitter, an auditor, and a final approver.
+  ```dbml
+  submitter_id integer [not null]
+  auditor_id integer // nullable
+  approver_id integer // nullable
+  ```

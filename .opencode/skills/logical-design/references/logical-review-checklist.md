@@ -1,17 +1,23 @@
-# Logical Design Review Checklist
+# Reference: Pre-Flight Logical Review Checklist
 
-Before finalizing the Logical Database Design output, verify the following:
+Before outputting the final Markdown report, the LLM agent must silently execute this 5-point internal validation script against its generated schema:
 
-## 1. Completeness & Naming
-- [ ] Are all entities from the ERD represented as tables in UPPER_SNAKE_CASE?
-- [ ] Are all M:N relationships fully resolved into junction tables?
+* [ ] **Gate 1: The T-SQL "No-Enum" Audit**
+      Scan the DBML block. Are there any `Enum {}` syntax structures? 
+      * *If YES:* Kill the process immediately. Convert those attributes to standard `varchar(50)` and generate SQL `CHECK` expressions inside Section 3.
 
-## 2. Relationships & FKs
-- [ ] Are the multi-role foreign keys named uniquely to prevent column collisions?
-- [ ] Do FK nullability settings match the optionality from Step 2?
+* [ ] **Gate 2: Candidate Key Bi-Directional Parity**
+      * DBML -> Doc check: For every column carrying the `[unique]` tag, verify it is bulleted in Section 2.1.
+      * Doc -> DBML check: For every CK listed in Section 2.1, verify the DBML code carries the `[unique]` tag.
 
-## 3. DBML Native Features
-- [ ] Are Enums used for statuses, roles, and types instead of plain strings?
-- [ ] Are logical `default:` values applied to initial statuses?
-- [ ] Are all references (`Ref:`) defined at the bottom of the script, rather than inline?
-- [ ] Is `[delete: cascade]` applied to the relationships of the junction tables?
+* [ ] **Gate 3: Referential Delete Behavior Parity**
+      Cross-examine the Section 2.2 FK Summary Table against the DBML `Ref:` statements:
+      * Does the text state `RESTRICT` while the DBML code has `[delete: cascade]`? (Fatal mismatch).
+      * Standard: Set written text to `RESTRICT` for operational base tables, and `CASCADE` strictly for junction tables.
+
+* [ ] **Gate 4: Mandatory Nullability Alignment**
+      * Does Section 2.3 list a column as `NOT NULL` while the DBML code forgot the `[not null]` tag? 
+      * *Action:* Append missing `[not null]` tags into the DBML table definitions.
+
+* [ ] **Gate 5: Categorical Domain Check Coverage**
+      Inspect Section 3 (Business Integrity Constraints). Does it contain an explicit `CHECK (column IN (...))` expression for **every single** categorical variable declared across the DBML tables?
