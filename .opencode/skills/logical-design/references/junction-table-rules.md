@@ -5,22 +5,22 @@ Whenever a conceptual Many-to-Many (`M:N`) relationship exists between two entit
 
 ## 2. Strict DDL Structural Rules
 1. **No Surrogate Primary Keys:** A pure junction table must **never** declare a standalone auto-incrementing primary key (e.g., `junction_id integer [pk, increment]`). 
-2. **Composite Primary Key:** Entity integrity must be enforced by combining the participating foreign keys into a composite primary key declared inside an explicit `Indexes` block.
+2. **Named Composite Primary Key:** Entity integrity must be enforced by combining the participating foreign keys into a composite primary key declared inside an explicit `Indexes` block carrying a formal DDL constraint name (`[pk, name: 'pk_[table_name]']`).
 3. **Mandatory Participation:** All participating foreign key columns must be explicitly typed as `[not null]`.
 4. **Cascading Obliteration:** Because the junction tuple possesses no independent existential meaning outside of its parent entities, all foreign key reference definitions must carry `[delete: cascade]`.
 
 ## 3. Benchmark Implementation Standard
 ```dbml
-Table ENTITY_A_ENTITY_B {
-  entity_a_id integer [not null]
-  entity_b_code varchar(50) [not null]
+Table SPACE_FACILITY {
+  space_code varchar(50) [not null]
+  facility_id integer [not null]
 
   Indexes {
-    (entity_a_id, entity_b_code) [pk]
+    (space_code, facility_id) [pk, name: 'pk_space_facility']
   }
 }
 
 // Global declarations at the bottom:
-Ref: ENTITY_A_ENTITY_B.entity_a_id > ENTITY_A.id [delete: cascade]
-Ref: ENTITY_A_ENTITY_B.entity_b_code > ENTITY_B.code [delete: cascade]
+Ref: SPACE_FACILITY.space_code > SPACE.space_code [delete: cascade]
+Ref: SPACE_FACILITY.facility_id > FACILITY.facility_id [delete: cascade]
 ```

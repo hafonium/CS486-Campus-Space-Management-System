@@ -4,7 +4,7 @@ Before outputting the final Markdown report, the LLM agent must silently execute
 
 * [ ] **Gate 1: The T-SQL "No-Enum" Audit**
       Scan the DBML block. Are there any `Enum {}` syntax structures? 
-      * *If YES:* Kill the process immediately. Convert those attributes to standard `varchar(50)` and generate SQL `CHECK` expressions inside Section 3.
+      * *If YES:* Halt generation immediately. Convert those attributes to standard `varchar(50)` and generate SQL `CHECK` expressions inside Section 3.
 
 * [ ] **Gate 2: Candidate Key Bi-Directional Parity**
       * DBML -> Doc check: For every column carrying the `[unique]` tag, verify it is bulleted in Section 2.
@@ -15,13 +15,15 @@ Before outputting the final Markdown report, the LLM agent must silently execute
       * Does the text state `RESTRICT` while the DBML code has `[delete: cascade]`? (Fatal mismatch).
       * Standard: Set written text to `RESTRICT` for operational base tables, and `CASCADE` strictly for junction tables.
 
-* [ ] **Gate 4: Mandatory Nullability Alignment**
-      * Does Section 2 list a column as `NOT NULL` while the DBML code forgot the `[not null]` tag? 
-      * *Action:* Append missing `[not null]` tags into the DBML table definitions.
+* [ ] **Gate 4: Structural Section 2 Completeness Audit**
+      Verify that Section 2 physically renders **all three** mandatory markdown structural blocks without using decimal sub-headings (`### 2.1`):
+      1. Bold Run-in Header: `**Primary Keys & Candidate Keys:**` (Fully populated).
+      2. Bold Run-in Header: `**Foreign Keys & Referential Integrity:**` (Fully populated markdown table).
+      3. Bold Run-in Header: `**NOT NULL Constraints:**` (Fully populated markdown table mapping all `[not null]` DBML attributes). Never drop the NOT NULL summary table.
 
 * [ ] **Gate 5: Categorical Domain Check Coverage**
       Inspect Section 3 (Business Integrity Constraints). Does it contain an explicit `CHECK (column IN (...))` expression for **every single** categorical variable declared in the DBML?
 
-* [ ] **Gate 6: Scalar Boundary Bi-Directional Traceability**
-      Scan Section 3 for any mathematical scalar checks (e.g., `capacity > 0`, `expected_participants > 0`). 
-      * *Action:* Verify that the corresponding column in the DBML block (Section 1) explicitly carries an inline pointer note matching its predicate: `note: 'CHECK ([column] > 0) – Section 3'`. Do not leave scalar check columns un-noted.
+* [ ] **Gate 6: AST Traceability Pointer Note Bijection**
+      Scan Section 3 for any single-row constraints (categorical domains, scalar bounds `> 0`, chronological timeline orders). 
+      * *Action:* Verify that the corresponding column in the DBML block explicitly mounts an inline pointer note matching its mathematical predicate: `note: 'CHECK (...) – Section 3'`. Zero un-noted check columns allowed.
