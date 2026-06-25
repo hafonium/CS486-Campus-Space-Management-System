@@ -1,4 +1,4 @@
-# Logical Database Design (Step 3) — Final Deliverable
+# Logical Database Design (Relational Schema)
 
 ---
 
@@ -7,8 +7,6 @@
 *Copy the code below and paste it into [dbdiagram.io](https://dbdiagram.io/) to view the schema.*
 
 ```dbml
-// Logical Database Design: Complete Schema
-// Candidate key marks applied, inline traceability notes included, all FKs declared
 // Strictly NO Enum blocks declared here
 
 // --- Tables ---
@@ -18,21 +16,21 @@ Table USER {
   full_name varchar(255) [not null]
   email varchar(255) [not null, unique]
   phone_number varchar(20) [not null, unique]
-  role varchar(50) [not null, default: 'student', note: 'CHECK ([role] IN (...)) – Section 3']
+  role varchar(50) [not null, note: 'CHECK ([role] IN ('student', 'lecturer', 'teaching_assistant', 'facility_staff', 'department_administrator', 'facility_manager')) – Section 3']
   department varchar(255) [not null]
-  account_status varchar(50) [not null, default: 'active', note: 'CHECK ([account_status] IN (...)) – Section 3']
+  account_status varchar(50) [not null, default: 'active', note: 'CHECK ([account_status] IN ('active', 'suspended', 'deactivated')) – Section 3']
 }
 
 Table SPACE {
   space_code varchar(50) [pk]
   space_name varchar(255) [not null]
-  space_type varchar(50) [not null, note: 'CHECK ([space_type] IN (...)) – Section 3']
+  space_type varchar(50) [not null, note: 'CHECK ([space_type] IN ('auditorium', 'classroom', 'computer_lab', 'project_lab', 'meeting_room', 'student_workspace')) – Section 3']
   building varchar(255) [not null]
   floor integer [not null]
   room_number varchar(50) [not null]
   capacity integer [not null, note: 'CHECK ([capacity] > 0) – Section 3']
-  current_status varchar(50) [not null, default: 'available', note: 'CHECK ([current_status] IN (...)) – Section 3']
-  usage_policy text [not null]
+  current_status varchar(50) [not null, default: 'available', note: 'CHECK ([current_status] IN ('available', 'in_use', 'under_maintenance', 'temporarily_closed', 'retired')) – Section 3']
+  usage_policy text
 
   Indexes {
     (building, floor, room_number) [unique, name: 'uq_space_location']
@@ -44,24 +42,33 @@ Table FACILITY {
   facility_name varchar(255) [not null, unique]
 }
 
+Table SPACE_FACILITY {
+  space_code varchar(50) [not null]
+  facility_id integer [not null]
+
+  Indexes {
+    (space_code, facility_id) [pk, name: 'pk_space_facility']
+  }
+}
+
 Table BOOKING {
   booking_id integer [pk, increment]
   requester_id integer [not null]
   space_code varchar(50) [not null]
-  decision_staff_id integer
-  check_in_staff_id integer
-  completion_staff_id integer
   requested_start_time datetime [not null]
   requested_end_time datetime [not null, note: 'CHECK ([requested_start_time] < [requested_end_time]) – Section 3']
-  purpose varchar(50) [not null, note: 'CHECK ([purpose] IN (...)) – Section 3']
+  purpose varchar(50) [not null, note: 'CHECK ([purpose] IN ('lecture', 'examination', 'seminar', 'workshop', 'meeting', 'student_activity', 'administrative_event')) – Section 3']
   expected_participants integer [not null, note: 'CHECK ([expected_participants] > 0) – Section 3']
-  booking_status varchar(50) [not null, default: 'pending', note: 'CHECK ([booking_status] IN (...)) – Section 3']
+  booking_status varchar(50) [not null, default: 'pending', note: 'CHECK ([booking_status] IN ('pending', 'approved', 'rejected', 'cancelled', 'checked_in', 'completed', 'no_show')) – Section 3']
+  decision_staff_id integer
   decision_time datetime
   decision_note text
   rejection_reason text
+  check_in_staff_id integer
   actual_start_time datetime
   initial_condition text
-  actual_end_time datetime [note: 'CHECK ([actual_start_time] < [actual_end_time]) – Section 3']
+  completion_staff_id integer
+  actual_end_time datetime [note: 'CHECK ([actual_start_time] IS NULL OR [actual_end_time] IS NULL OR [actual_start_time] < [actual_end_time]) – Section 3']
   final_condition text
   usage_notes text
 }
@@ -73,30 +80,29 @@ Table MAINTENANCE_RECORD {
   assigned_staff_id integer
   problem_description text [not null]
   start_time datetime [not null]
-  completion_time datetime [note: 'CHECK ([start_time] < [completion_time]) – Section 3']
-  status varchar(50) [not null, default: 'reported', note: 'CHECK ([status] IN (...)) – Section 3']
+  completion_time datetime [note: 'CHECK ([completion_time] IS NULL OR [start_time] < [completion_time]) – Section 3']
+  status varchar(50) [not null, default: 'reported', note: 'CHECK ([status] IN ('reported', 'in_progress', 'completed')) – Section 3']
   result_note text
 }
 
-Table SPACE_FACILITY {
-  space_code varchar(50) [not null]
-  facility_id integer [not null]
-
-  Indexes {
-    (space_code, facility_id) [pk, name: 'pk_space_facility']
-  }
-}
-
 // --- Relationships ---
+// BOOKING referencing SPACE
+Ref: BOOKING.space_code > SPACE.space_code
 
+// BOOKING referencing USER (multi-role: requester, approver/rejecter, check-in staff, completion staff)
 Ref: BOOKING.requester_id > USER.user_id
 Ref: BOOKING.decision_staff_id > USER.user_id
 Ref: BOOKING.check_in_staff_id > USER.user_id
 Ref: BOOKING.completion_staff_id > USER.user_id
-Ref: BOOKING.space_code > SPACE.space_code
+
+// MAINTENANCE_RECORD referencing SPACE
+Ref: MAINTENANCE_RECORD.space_code > SPACE.space_code
+
+// MAINTENANCE_RECORD referencing USER (multi-role: reporter, assigned staff)
 Ref: MAINTENANCE_RECORD.reporter_id > USER.user_id
 Ref: MAINTENANCE_RECORD.assigned_staff_id > USER.user_id
-Ref: MAINTENANCE_RECORD.space_code > SPACE.space_code
+
+// SPACE_FACILITY junction table (M:N resolution between SPACE and FACILITY)
 Ref: SPACE_FACILITY.space_code > SPACE.space_code [delete: cascade]
 Ref: SPACE_FACILITY.facility_id > FACILITY.facility_id [delete: cascade]
 ```
@@ -105,40 +111,39 @@ Ref: SPACE_FACILITY.facility_id > FACILITY.facility_id [delete: cascade]
 
 ## 2. Constraints and Keys Summary
 
-### 2.1 Primary Keys & Candidate Keys
+**Primary Keys & Candidate Keys:**
+* **[USER]:** PK = `(user_id)`, CK = `(email)`, CK = `(phone_number)`
+* **[SPACE]:** PK = `(space_code)`, CK = `(building, floor, room_number)`
+* **[FACILITY]:** PK = `(facility_id)`, CK = `(facility_name)`
+* **[SPACE_FACILITY]:** PK = `(space_code, facility_id)`
+* **[BOOKING]:** PK = `(booking_id)`
+* **[MAINTENANCE_RECORD]:** PK = `(maintenance_id)`
 
-* **USER:** PK = `user_id`, CK = `email`, CK = `phone_number`
-* **SPACE:** PK = `space_code`, CK = `(building, floor, room_number)` named `uq_space_location`
-* **FACILITY:** PK = `facility_id`, CK = `facility_name`
-* **BOOKING:** PK = `booking_id`
-* **MAINTENANCE_RECORD:** PK = `maintenance_id`
-* **SPACE_FACILITY:** PK = `(space_code, facility_id)` named `pk_space_facility`
-
-### 2.2 Foreign Keys & Referential Integrity
+**Foreign Keys & Referential Integrity:**
 
 | FK Column | Child Table | Parent Table | PK Column | Nullable | Delete Behavior |
 |---|---|---|---|---|---|
-| `requester_id` | BOOKING | USER | `user_id` | NO | RESTRICT |
-| `space_code` | BOOKING | SPACE | `space_code` | NO | RESTRICT |
-| `decision_staff_id` | BOOKING | USER | `user_id` | YES | RESTRICT |
-| `check_in_staff_id` | BOOKING | USER | `user_id` | YES | RESTRICT |
-| `completion_staff_id` | BOOKING | USER | `user_id` | YES | RESTRICT |
-| `space_code` | MAINTENANCE_RECORD | SPACE | `space_code` | NO | RESTRICT |
-| `reporter_id` | MAINTENANCE_RECORD | USER | `user_id` | NO | RESTRICT |
-| `assigned_staff_id` | MAINTENANCE_RECORD | USER | `user_id` | YES | RESTRICT |
-| `space_code` | SPACE_FACILITY | SPACE | `space_code` | NO | CASCADE |
-| `facility_id` | SPACE_FACILITY | FACILITY | `facility_id` | NO | CASCADE |
+| `requester_id` | BOOKING | USER | user_id | NO | RESTRICT |
+| `decision_staff_id` | BOOKING | USER | user_id | YES | RESTRICT |
+| `check_in_staff_id` | BOOKING | USER | user_id | YES | RESTRICT |
+| `completion_staff_id` | BOOKING | USER | user_id | YES | RESTRICT |
+| `space_code` | BOOKING | SPACE | space_code | NO | RESTRICT |
+| `space_code` | MAINTENANCE_RECORD | SPACE | space_code | NO | RESTRICT |
+| `reporter_id` | MAINTENANCE_RECORD | USER | user_id | NO | RESTRICT |
+| `assigned_staff_id` | MAINTENANCE_RECORD | USER | user_id | YES | RESTRICT |
+| `space_code` | SPACE_FACILITY | SPACE | space_code | NO | CASCADE |
+| `facility_id` | SPACE_FACILITY | FACILITY | facility_id | NO | CASCADE |
 
-### 2.3 NOT NULL Constraints
+**NOT NULL Constraints:**
 
 | Table | NOT NULL Columns |
 |---|---|
 | USER | `user_id`, `full_name`, `email`, `phone_number`, `role`, `department`, `account_status` |
-| SPACE | `space_code`, `space_name`, `space_type`, `building`, `floor`, `room_number`, `capacity`, `current_status`, `usage_policy` |
+| SPACE | `space_code`, `space_name`, `space_type`, `building`, `floor`, `room_number`, `capacity`, `current_status` |
 | FACILITY | `facility_id`, `facility_name` |
+| SPACE_FACILITY | `space_code`, `facility_id` |
 | BOOKING | `booking_id`, `requester_id`, `space_code`, `requested_start_time`, `requested_end_time`, `purpose`, `expected_participants`, `booking_status` |
 | MAINTENANCE_RECORD | `maintenance_id`, `space_code`, `reporter_id`, `problem_description`, `start_time`, `status` |
-| SPACE_FACILITY | `space_code`, `facility_id` |
 
 ---
 
@@ -146,237 +151,74 @@ Ref: SPACE_FACILITY.facility_id > FACILITY.facility_id [delete: cascade]
 
 *Note: As Microsoft SQL Server (T-SQL) does not natively support the `ENUM` data type, categorical domains and scalar boundaries are explicitly enforced via single-row table `CHECK` constraints.*
 
-### USER Domain Checks
-
+**USER Domain Checks:**
 * **`chk_user_role_domain`**: `CHECK ([role] IN ('student', 'lecturer', 'teaching_assistant', 'facility_staff', 'department_administrator', 'facility_manager'))`
 * **`chk_user_account_status_domain`**: `CHECK ([account_status] IN ('active', 'suspended', 'deactivated'))`
 
-### SPACE Domain Checks
-
+**SPACE Domain Checks:**
 * **`chk_space_type_domain`**: `CHECK ([space_type] IN ('auditorium', 'classroom', 'computer_lab', 'project_lab', 'meeting_room', 'student_workspace'))`
-* **`chk_space_status_domain`**: `CHECK ([current_status] IN ('available', 'in_use', 'under_maintenance', 'temporarily_closed', 'retired'))`
 * **`chk_space_capacity_boundary`**: `CHECK ([capacity] > 0)`
+* **`chk_space_current_status_domain`**: `CHECK ([current_status] IN ('available', 'in_use', 'under_maintenance', 'temporarily_closed', 'retired'))`
 
-### BOOKING Domain Checks
-
+**BOOKING Domain Checks:**
 * **`chk_booking_purpose_domain`**: `CHECK ([purpose] IN ('lecture', 'examination', 'seminar', 'workshop', 'meeting', 'student_activity', 'administrative_event'))`
+* **`chk_booking_expected_participants_boundary`**: `CHECK ([expected_participants] > 0)`
 * **`chk_booking_status_domain`**: `CHECK ([booking_status] IN ('pending', 'approved', 'rejected', 'cancelled', 'checked_in', 'completed', 'no_show'))`
-* **`chk_booking_participants_boundary`**: `CHECK ([expected_participants] > 0)`
-* **`chk_booking_timeline_order`**: `CHECK ([requested_start_time] < [requested_end_time])`
-* **`chk_booking_decision_required_fields`**: `CHECK (NOT ([booking_status] IN ('approved', 'rejected')) OR ([decision_staff_id] IS NOT NULL AND [decision_time] IS NOT NULL AND [decision_note] IS NOT NULL))`
+* **`chk_booking_time_order`**: `CHECK ([requested_start_time] < [requested_end_time])`
+* **`chk_booking_actual_time_order`**: `CHECK ([actual_start_time] IS NULL OR [actual_end_time] IS NULL OR [actual_start_time] < [actual_end_time])`
+* **`chk_booking_decision_fields`**: `CHECK ([booking_status] NOT IN ('approved', 'rejected') OR ([decision_staff_id] IS NOT NULL AND [decision_time] IS NOT NULL AND [decision_note] IS NOT NULL))`
 * **`chk_booking_rejection_reason`**: `CHECK ([booking_status] <> 'rejected' OR [rejection_reason] IS NOT NULL)`
-* **`chk_booking_checkin_required_fields`**: `CHECK ([booking_status] <> 'checked_in' OR ([actual_start_time] IS NOT NULL AND [check_in_staff_id] IS NOT NULL AND [initial_condition] IS NOT NULL))`
-* **`chk_booking_completion_required_fields`**: `CHECK ([booking_status] <> 'completed' OR ([actual_end_time] IS NOT NULL AND [final_condition] IS NOT NULL))`
-* **`chk_booking_actual_timeline_order`**: `CHECK ([actual_start_time] IS NULL OR [actual_end_time] IS NULL OR [actual_start_time] < [actual_end_time])`
+* **`chk_booking_checkin_fields`**: `CHECK ([booking_status] NOT IN ('checked_in', 'completed') OR ([check_in_staff_id] IS NOT NULL AND [actual_start_time] IS NOT NULL AND [initial_condition] IS NOT NULL))`
+* **`chk_booking_completion_fields`**: `CHECK ([booking_status] <> 'completed' OR ([completion_staff_id] IS NOT NULL AND [actual_end_time] IS NOT NULL AND [final_condition] IS NOT NULL AND [usage_notes] IS NOT NULL))`
 
-### MAINTENANCE_RECORD Domain Checks
-
+**MAINTENANCE_RECORD Domain Checks:**
 * **`chk_maintenance_status_domain`**: `CHECK ([status] IN ('reported', 'in_progress', 'completed'))`
-* **`chk_maintenance_timeline_order`**: `CHECK ([completion_time] IS NULL OR [start_time] < [completion_time])`
-* **`chk_maintenance_completion_required_fields`**: `CHECK ([status] <> 'completed' OR ([completion_time] IS NOT NULL AND [result_note] IS NOT NULL))`
+* **`chk_maintenance_time_order`**: `CHECK ([completion_time] IS NULL OR [start_time] < [completion_time])`
 
 ---
 
 ## 4. Architectural Assumptions
 
-### Procedural Enforcement (Multi-row / Cross-table Logic)
+**Procedural Enforcement (Multi-row / Cross-table logic):**
 
-**1. Overlapping Booking Prevention (Business Rule 3)**
-- **Business Requirement:** The same space must not have two approved bookings whose time periods overlap.
-- **Constraint Type:** Pattern 3 (Multi-row / Cross-table temporal exclusion)
-- **Database Limitation:** Single-row CHECK constraints cannot reference other rows in the same table.
-- **Enforcement Strategy:** Must be enforced via an `INSTEAD OF INSERT/UPDATE` T-SQL trigger or application middleware.
-  ```sql
-  -- Pseudo-code for application-level validation:
-  IF EXISTS (SELECT 1 FROM BOOKING
-             WHERE space_code = @space_code
-             AND booking_status = 'approved'
-             AND booking_id <> @booking_id
-             AND requested_start_time < @new_end
-             AND requested_end_time > @new_start)
-      RAISERROR('Overlapping booking detected', 16, 1)
-  ```
+1. **Overlapping Booking Prevention (Business Rule 3):** The same space must not have two approved bookings with overlapping time periods. This requires a cross-tuple temporal overlap check: for any new or updated booking with `booking_status = 'approved'`, the system must verify that no other approved booking for the same space satisfies `requested_start_time < @new_end AND requested_end_time > @new_start`. Enforcement strategy: Application middleware or an `INSTEAD OF INSERT/UPDATE` T-SQL trigger on the `BOOKING` table.
 
-**2. Space Availability Gate (Business Rule 2)**
-- **Business Requirement:** A space whose `current_status` is `'under_maintenance'`, `'temporarily_closed'`, or `'retired'` cannot accept new approved bookings.
-- **Constraint Type:** Pattern 3 (Cross-entity availability gate)
-- **Database Limitation:** CHECK constraints cannot reference foreign key parent tables.
-- **Enforcement Strategy:** Application-level validation during booking submission or a pre-insert trigger:
-  ```sql
-  -- Pseudo-code:
-  IF EXISTS (SELECT 1 FROM SPACE
-             WHERE space_code = @space_code
-             AND current_status IN ('under_maintenance', 'temporarily_closed', 'retired'))
-      RAISERROR('Space unavailable for booking', 16, 1)
-  ```
+2. **Unavailable Space Booking Gate (Business Rule 2):** A space whose `current_status` is `'under_maintenance'`, `'temporarily_closed'`, or `'retired'` cannot be booked. This requires a cross-table read from `BOOKING` to `SPACE` to inspect the space's current status at the time of booking submission. Enforcement strategy: Application middleware or an `INSTEAD OF INSERT` T-SQL trigger on the `BOOKING` table that joins to `SPACE` and rejects the insert if the space is in an ineligible status.
 
-**3. Role-Based Authorization Gates (Business Rules 9 & 10)**
-- **Business Requirement:**
-  - BR 9: Only facility staff or facility managers may approve/reject a booking request.
-  - BR 10: Only facility staff may perform check-in and session completion operations.
-- **Constraint Type:** Pattern 3 (Session-aware authorization)
-- **Database Limitation:** CHECK constraints cannot access application session context or call functions dynamically.
-- **Enforcement Strategy:** Application middleware must validate user role before issuing UPDATE statements:
-  ```sql
-  -- Pseudo-code:
-  IF @acting_user_role NOT IN ('facility_staff', 'facility_manager')
-      RAISERROR('Unauthorized: Only staff can approve bookings', 16, 1)
-  ```
+3. **Role-Based Approval Authorization (Business Rule 9):** Only users whose `role` is `'facility_staff'` or `'facility_manager'` may approve or reject a booking. When `decision_staff_id` is set, the system must verify that the referenced user holds an eligible role. Enforcement strategy: Application middleware or an `AFTER INSERT/UPDATE` T-SQL trigger on the `BOOKING` table that reads the `USER` table's `role` column.
 
-**4. Booking State Machine Lifecycle**
-- **Business Requirement:** The `booking_status` must transition through predefined valid sequences:
-  - `pending` → (`approved` | `rejected` | `cancelled`)
-  - `approved` → (`checked_in` | `cancelled` | `no_show`)
-  - `checked_in` → (`completed` | `no_show`)
-  - Random transitions (e.g., `pending` → `completed`, `rejected` → `checked_in`) are prohibited.
-- **Constraint Type:** Pattern 3 (Multi-state lifecycle validation)
-- **Database Limitation:** Finite state machine logic cannot be expressed in standard CHECK syntax.
-- **Enforcement Strategy:** Application middleware using a predefined state transition map:
-  ```
-  TRANSITIONS = {
-    'pending':    ['approved', 'rejected', 'cancelled'],
-    'approved':   ['checked_in', 'cancelled', 'no_show'],
-    'checked_in': ['completed', 'no_show'],
-    'completed':  [],
-    'rejected':   [],
-    'cancelled':  [],
-    'no_show':    []
-  }
-  ```
+4. **Role-Based Check-In/Completion Authorization (Business Rule 10):** Only users whose `role` is `'facility_staff'` may perform check-in or session completion. When `check_in_staff_id` or `completion_staff_id` is set, the system must verify that the referenced user holds the `'facility_staff'` role (facility managers are implicitly excluded from this operation unless they also hold the `facility_staff` role). Enforcement strategy: Application middleware or an `AFTER INSERT/UPDATE` T-SQL trigger on the `BOOKING` table.
 
-**5. Maintenance State Machine Lifecycle**
-- **Business Requirement:** The `status` must follow: `reported` → `in_progress` → `completed`. Direct transitions from `reported` to `completed` are prohibited.
-- **Constraint Type:** Pattern 3 (Linear state progression)
-- **Database Limitation:** State ordering logic requires sequential validation.
-- **Enforcement Strategy:** Application middleware validating current → requested status:
-  ```
-  ALLOWED = {
-    'reported':    ['in_progress'],
-    'in_progress': ['completed'],
-    'completed':   []
-  }
-  ```
+5. **Booking Status State Machine (Progressive Lifecycle):** A booking must transition through its lifecycle in the defined order: `pending` → `approved` (or `rejected`, `cancelled`) → `checked_in` (or `cancelled`, `no_show`) → `completed`. For example, a booking cannot jump from `pending` directly to `completed` without passing through `approved` and `checked_in`. Enforcement strategy: Application middleware or an `INSTEAD OF UPDATE` T-SQL trigger that validates the old-to-new status transition against a whitelist of permitted transitions.
 
----
+**Design Assumptions:**
 
-### Design Assumptions
+1. **Completion Staff Role Relation:** The ERD defines four distinct USER-to-BOOKING roles (`submits`, `decides_on`, `checks_in`, `completes`). The `completion_staff_id` FK column has been physically added to the `BOOKING` table to realize the `completes` relationship, consistent with the existing `requester_id`, `decision_staff_id`, and `check_in_staff_id` pattern. This aligns with the Step 1 assumption that different staff members may handle check-in and completion.
 
-**1. Single Role per Session Model**
-While a user may hold multiple roles in the system (e.g., a lecturer who is also a department administrator), the current design assumes a single active role context per user session. Multi-role session switching is deferred entirely to the application layer. The relational schema stores all possible roles in the USER.role column and applies authorization constraints at query/application time, not at the schema level.
+2. **Multi-Role User Accounts:** A single user may hold multiple roles simultaneously (e.g., a lecturer who also serves as facility manager). The `role` attribute is modeled as a single `varchar(50)` column. If the School later requires a user to possess multiple discrete role assignments, the schema should be refactored to introduce a separate `USER_ROLE` associative table. The current design is chosen for simplicity under the explicit Step 1 assumption that multi-role capability is not a hard requirement.
 
-**2. No Recurring Bookings**
-The system handles only individual, non-repeating booking requests. Recurring or repeating bookings (e.g., "every Wednesday 10 AM") are out of scope for this logical design.
+3. **Recurring Bookings Not Supported:** The schema handles only individual, discrete booking requests. Recurring or repeating bookings are outside the current scope, per the Step 1 assumptions.
 
-**3. Composite Location as Candidate Key for SPACE**
-The tuple `(building, floor, room_number)` is declared as a composite unique key, ensuring no two spaces occupy the same physical room within a building. This complements the surrogate PK `space_code` and provides a geo-spatial uniqueness guarantee.
+4. **Facility Maintenance Scope:** Facilities are tracked only as attributes of spaces (via the `SPACE_FACILITY` junction table). Independent maintenance tracking of facility equipment (as distinct from space-level maintenance) is not supported, per the Step 1 assumption.
 
-**4. Space Code as Natural Identifier**
-The `space_code` in SPACE serves as the primary natural identifier across the system (used as FK in BOOKING, MAINTENANCE_RECORD, SPACE_FACILITY). It is **not an auto-increment surrogate**; its format (e.g., "CS-101", "SCI-Lab-02") is managed by application logic or manual administrative entry.
+5. **Nullable Usage Policy:** The `usage_policy` column in `SPACE` is modeled as nullable `text`. While the business requirements mention storing a usage policy per space, no business rule enforces its mandatory presence at the time of space creation, and the policy text may be added or updated later.
 
-**5. Facility Names are Globally Unique**
-Each facility type (e.g., "Projector", "Whiteboard", "Air Conditioner") is uniquely named enterprise-wide, enforced via `[unique]` on `facility_name`. This ensures a single global inventory of facility types across all spaces.
+6. **Maintenance Assignment Timing:** The `assigned_staff_id` FK is nullable to allow a maintenance record to be created (`reported`) before a staff member is designated to handle it. Assignment is optional at the time of record creation, consistent with the Step 1 cardinality analysis.
 
 ---
 
 ## 5. Design Notes
 
-### 1. M:N Resolution via Pure Junction Table
+1. **M:N Resolution:** The conceptual many-to-many relationship `SPACE }o--o{ FACILITY : "contains"` from the ERD has been physically resolved into the associative junction table `SPACE_FACILITY`. This table carries no surrogate primary key; entity integrity is enforced by the named composite primary key `pk_space_facility` on `(space_code, facility_id)`. Both foreign key references carry `[delete: cascade]` because a junction tuple has no independent existential meaning outside of its parent entities.
 
-The Conceptual ERD contains a Many-to-Many relationship: `SPACE }o--o{ FACILITY : "contains"`.
+2. **Multiple Role Mapping:** The `USER` entity participates in four distinct operational relationships with `BOOKING` (requester, approver/rejecter, check-in staff, completion staff) and two with `MAINTENANCE_RECORD` (reporter, assigned staff). All six foreign key columns follow the multi-role disambiguation rule: each column is named strictly after its functional role (e.g., `decision_staff_id`, `check_in_staff_id`, `completion_staff_id`) rather than the target table name `user_id`.
 
-**Logical Design Decision:** Resolved via the pure associative junction table `SPACE_FACILITY`:
-- No surrogate key (no `junction_id integer [pk, increment]`)
-- Composite PK derived from both FK columns: `(space_code, facility_id)` with explicit name `pk_space_facility`
-- Both FK references declare `[delete: cascade]` because the junction tuple holds no independent business meaning outside its parent entities
-- If a SPACE is deleted, all its SPACE_FACILITY records cascade-delete. If a FACILITY type is retired, all occurrences of that facility in spaces cascade-delete.
+3. **T-SQL Compliance:** All categorical variables (`role`, `account_status`, `space_type`, `current_status`, `purpose`, `booking_status`, `maintenance status`) are modeled as `varchar(50)` with explicit `CHECK (column IN (...))` constraints declared in Section 3. No `Enum` blocks are used, aligning with Microsoft SQL Server DDL physical standards which do not support ANSI `ENUM` types.
 
-**Rationale:** The 3NF junction table pattern ensures data normalization while preserving the parent-child deletion semantics necessary for a campus space management context where equipment may be decommissioned or spaces repurposed.
+4. **Referential Integrity:** All operational base entity relationships use logical `RESTRICT` (no explicit delete modifier in DBML, translating to T-SQL `ON DELETE NO ACTION`). This preserves institutional audit trails by preventing the accidental deletion of a `USER` or `SPACE` that is referenced by historical `BOOKING` or `MAINTENANCE_RECORD` tuples. Cascade deletion is applied strictly to the `SPACE_FACILITY` junction table, as its tuples are purely associative and must be removed when either parent is deleted.
 
-### 2. Multiple Role Mapping in BOOKING & MAINTENANCE_RECORD
+5. **Candidate Key Selection:** The `USER` table identifies `(email)` and `(phone_number)` as single-attribute candidate keys marked `[unique]`, reflecting the real-world expectation that no two users share the same email address or phone number. The `SPACE` table identifies `(building, floor, room_number)` as a composite candidate key `[unique]`, reflecting the physical uniqueness of room locations within the campus. The `FACILITY` table identifies `(facility_name)` as a candidate key `[unique]` to prevent duplicate facility type entries.
 
-Because the same entity USER plays distinct operational roles in transactional processes, both BOOKING and MAINTENANCE_RECORD reference USER multiple times via distinctly named foreign key columns.
+6. **State-Contingent Nullability Enforcement:** Four intra-record `CHECK` constraints on the `BOOKING` table enforce that status-dependent required fields are populated when a booking reaches a specific lifecycle stage: decision fields when approved/rejected, rejection reason when rejected, check-in fields when checked in or completed, and completion fields when completed. These are implemented as single-row `CHECK` constraints using propositional logic (¬P ∨ Q) without cross-table references, making them valid and enforceable at the DDL level.
 
-**BOOKING References to USER:**
-- `requester_id`: The user who submitted the booking request
-- `decision_staff_id`: The facility staff member or manager who approved/rejected the request
-- `check_in_staff_id`: The staff member who performed check-in
-- `completion_staff_id`: The staff member who completed the session
-
-**MAINTENANCE_RECORD References to USER:**
-- `reporter_id`: The user (any role) who reported the maintenance issue
-- `assigned_staff_id`: The facility staff member assigned to resolve the issue
-
-**Column Naming Strategy:** Each FK column is named after its **functional role**, not the target table. This disambiguates the relationship semantics and improves code readability.
-
-### 3. T-SQL Compliance: Enum Prohibition & CHECK-Based Enumeration
-
-Microsoft SQL Server does not natively support `ENUM` types. All categorical variables are modeled as standard `varchar(50)` columns and enforced via explicit table-level `CHECK` constraints:
-- Role values: `('student', 'lecturer', 'teaching_assistant', 'facility_staff', 'department_administrator', 'facility_manager')`
-- Space type values: `('auditorium', 'classroom', 'computer_lab', 'project_lab', 'meeting_room', 'student_workspace')`
-- Booking status values: `('pending', 'approved', 'rejected', 'cancelled', 'checked_in', 'completed', 'no_show')`
-
-This design choice avoids unnecessary join complexity for simple code lists while maintaining full data integrity via database constraints.
-
-### 4. Referential Integrity: RESTRICT vs. CASCADE
-
-**Standard Operational Tables (RESTRICT Delete Behavior):**
-USER, SPACE, FACILITY, BOOKING, and MAINTENANCE_RECORD use `RESTRICT` (no `[delete:` modifier in DBML, interpreted as T-SQL `ON DELETE NO ACTION`). This preserves institutional audit trails: a historical booking record cannot be orphaned because its parent USER or SPACE cannot be deleted while dependent records exist.
-
-**Pure Junction Table (CASCADE Delete Behavior):**
-SPACE_FACILITY uses `[delete: cascade]` on both FK references. If a SPACE is retired or a FACILITY type is replaced, the junction records fall away automatically because they carry no independent business meaning.
-
-### 5. Candidate Key Strategy: Natural vs. Surrogate
-
-- **USER.user_id:** Surrogate key (auto-increment), serving as PK for simplicity. Natural candidates: `email`, `phone_number` (marked as CKs for unique constraint enforcement)
-- **SPACE.space_code:** Natural identifier (managed administratively), serving as PK. Composite natural candidate: `(building, floor, room_number)` ensures geo-spatial uniqueness
-- **FACILITY.facility_id:** Surrogate key (auto-increment) paired with natural candidate `facility_name`
-- **BOOKING.booking_id:** Surrogate key (auto-increment), no secondary natural candidates (bookings are identified by transaction history)
-- **MAINTENANCE_RECORD.maintenance_id:** Surrogate key (auto-increment), no secondary natural candidates
-
-This mixed strategy balances administrative convenience (surrogate keys for BOOKING, MAINTENANCE_RECORD) with semantic clarity (natural keys for SPACE).
-
----
-
-## 6. Validation Gate Results
-
-### 6-Point Pre-Flight Logical Review Checklist
-
-**Gate 1: The T-SQL "No-Enum" Audit**
-- ✅ SCAN: No `Enum {}` syntax structures found in DBML
-- ✅ All categorical columns use `varchar(50)` with explicit `CHECK (... IN (...))` constraints
-
-**Gate 2: Candidate Key Bi-Directional Parity**
-- ✅ DBML → Doc: Every column carrying `[unique]` is bulleted in Section 2.1
-- ✅ Doc → DBML: Every CK listed in Section 2.1 carries `[unique]` in DBML
-- ✅ Count match: 4 candidate keys in text = 4 `[unique]` marks in DBML (`email`, `phone_number`, `(building, floor, room_number)`, `facility_name`)
-
-**Gate 3: Referential Delete Behavior Parity**
-- ✅ Cross-examine Section 2.2 FK Summary Table against DBML `Ref:` statements
-- ✅ Operational tables (USER, SPACE, BOOKING, MAINTENANCE_RECORD): All documented as RESTRICT
-- ✅ Junction table (SPACE_FACILITY): Both FK references documented as CASCADE
-
-**Gate 4: Mandatory Nullability Alignment**
-- ✅ Section 2.3 NOT NULL list matches DBML `[not null]` tags
-- ✅ All mandatory columns carry proper `[not null]` tagging
-
-**Gate 5: Categorical Domain Check Coverage**
-- ✅ Section 3 contains `CHECK (... IN (...))` for every categorical variable:
-  - `role`, `account_status` (USER)
-  - `space_type`, `current_status` (SPACE)
-  - `purpose`, `booking_status` (BOOKING)
-  - `status` (MAINTENANCE_RECORD)
-
-**Gate 6: Scalar Boundary Bi-Directional Traceability**
-- ✅ Section 3 scalar checks: `capacity > 0`, `expected_participants > 0`, `[requested_start_time] < [requested_end_time]`, `[actual_start_time] < [actual_end_time]`, `[start_time] < [completion_time]`
-- ✅ DBML inline notes present on all scalar boundary columns:
-  - `capacity`: `note: 'CHECK ([capacity] > 0) – Section 3'`
-  - `expected_participants`: `note: 'CHECK ([expected_participants] > 0) – Section 3'`
-  - `requested_end_time`: `note: 'CHECK ([requested_start_time] < [requested_end_time]) – Section 3'`
-  - `actual_end_time`: `note: 'CHECK ([actual_start_time] < [actual_end_time]) – Section 3'`
-  - `completion_time`: `note: 'CHECK ([start_time] < [completion_time]) – Section 3'`
-
-**RESULT: ✅ ALL 6 GATES PASSED — Schema is 100% structurally and semantically valid.**
-
----
-
-**Deliverable Status: ✅ COMPLETE — Ready for Step 4 (Physical Design & Database Implementation)**
+7. **Default Lifecycle States:** The `account_status` column defaults to `'active'` for new user accounts, `current_status` defaults to `'available'` for new spaces, `booking_status` defaults to `'pending'` for new booking requests, and maintenance `status` defaults to `'reported'` for new maintenance records. These initial state injections align with the natural starting point of each entity's operational lifecycle.
