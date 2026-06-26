@@ -41,3 +41,20 @@
 * Mandated the 4-backtick super-block encapsulation standard for multi-language document rendering.
 * Adopted a pre-write diff protocol requiring agents to compare the previous file against correction prompts before generating the next staged artifact.
 
+### Iteration 3
+
+#### 1. Issues Encountered
+- **DBML syntax failure due to unescaped single quotes in `note` attributes:** Many column definitions embedded T‑SQL `CHECK` constraints as `note` strings delimited by single quotes (`'...'`), while the constraints themselves contained unescaped single‑quoted enumeration values. This caused the DBML parser to cut the note string prematurely, breaking the entire diagram.
+- **Affected columns across several tables:** The error propagated through `role` and `account_status` in USER, `space_type` and `current_status` in SPACE, and `requested_end_time`, `purpose`, `expected_participants`, `booking_status`, `actual_end_time` in BOOKING — all using the pattern `note: 'CHECK (… IN ('value1', …))'`.
+- **Untestable state before correction:** The DBML could not be rendered in dbdiagram.io, so none of the logical constraints defined in the notes were visible or usable.
+
+#### 2. Root Cause
+- The `dbml‑syntax‑guide.md` used by the agent did not explicitly specify the quoting convention for `note` strings when they contain SQL literals with single quotes.
+- The agent directly transcribed T‑SQL constraint examples into single‑quoted DBML strings without escaping, creating a nesting conflict between DBML's string delimiters and the SQL literals inside.
+- Previous fixes focused only on constraint completeness and structure, skipping syntax validation on the target rendering tool.
+
+#### 3. Resolution
+- Replaced the outer single quotes with double quotes for all affected `note` attributes, preserving the inner single‑quoted SQL literals without escaping. Example:  
+  `note: "CHECK ([role] IN ('student', 'lecturer', …)) – Section 3"`.
+- An equivalent alternative would be escaping inner single quotes with backslashes (`\'`), but double quotes were chosen for clarity and less visual clutter.
+- After the fix, the entire DBML block becomes syntactically valid and can be parsed and rendered by dbdiagram.io without errors.
