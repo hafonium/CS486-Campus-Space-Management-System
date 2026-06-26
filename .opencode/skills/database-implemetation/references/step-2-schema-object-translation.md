@@ -66,7 +66,11 @@ For every column:
 
 For every DBML `[default: '<value>']`:
 
-1. Emit `CONSTRAINT df_<table>_<column> DEFAULT '<value>' FOR [<column>]`
+1. Emit the default as a **column-level constraint** directly on the column definition:
+   ```sql
+   [<column>] <type> CONSTRAINT df_<table>_<column> DEFAULT '<value>'
+   ```
+   **Do NOT use `DEFAULT '<value>' FOR [<column>]`** — that syntax is only valid with `ALTER TABLE`, not inside `CREATE TABLE`.
 2. The default literal must be a valid value according to the column's domain CHECK constraint.
 
 ## Unique constraints
