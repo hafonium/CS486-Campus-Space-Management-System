@@ -58,3 +58,16 @@
   `note: "CHECK ([role] IN ('student', 'lecturer', …)) – Section 3"`.
 - An equivalent alternative would be escaping inner single quotes with backslashes (`\'`), but double quotes were chosen for clarity and less visual clutter.
 - After the fix, the entire DBML block becomes syntactically valid and can be parsed and rendered by dbdiagram.io without errors.
+
+### Iteration 4
+
+#### 1. Issues Encountered
+- **Persistent optionality in design decisions:** The SKILL still offered alternative solutions (e.g., double‑quote vs. escaped backslash for notes, application middleware vs. T‑SQL triggers for procedural logic). This violated the absolute rule that after Step 3, **every choice must be clear and non‑negotiable**.
+
+#### 2. Root Cause
+- The design protocol incorrectly assumed that enforcement strategies were interchangeable. In reality, the system has **no application layer**; T‑SQL is the only boundary for data integrity. The SKILL failed to default unconditionally to T‑SQL for both scalar and procedural constraints.
+
+#### 3. Resolution
+- **Hardened the SKILL to eliminate all alternatives:**
+  - **Note quoting:** Double‑quote wrapping (`"..."`) is strictly **mandatory** for SQL literals; backslash escaping is **banned**.
+  - **Procedural enforcement:** Application middleware is **removed** as an option. All cross‑table/state‑machine rules are now **exclusively enforced** via T‑SQL triggers (`INSTEAD OF`/`AFTER`).
