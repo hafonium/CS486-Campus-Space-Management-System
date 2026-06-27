@@ -30,19 +30,21 @@
 - Precede blocks of inserts with standard SQL comments (`--`) explaining what the block is doing.
 - Use comments to label rows that are specifically testing "Exceptional Cases" versus "Normal Operations".
 
-## Handling Triggers during Data Seeding
-- When performing bulk data preparation and using `SET IDENTITY_INSERT ON`, active triggers (specifically `INSTEAD OF INSERT` triggers) will often conflict with explicit ID assignments and crash the batch.
-- **Rule:** If the DDL indicates a table has an `INSTEAD OF INSERT` trigger, you MUST wrap that table's insert block with commands to temporarily disable and re-enable the trigger.
+## Dynamic Identity Handling (No Hardcoded IDs)
+- Never use `SET IDENTITY_INSERT ON` or attempt to force explicit IDs into auto-incrementing columns. This bypasses realistic testing and breaks `INSTEAD OF` triggers.
+- **Rule:** When inserting data that has dependent child records, declare T-SQL variables at the top of your batch. After inserting the parent record, capture its generated ID using `SCOPE_IDENTITY()` and pass that variable to the child inserts.
 - **Syntax Pattern:**
   ```sql
-  DISABLE TRIGGER [schema].[trigger_name] ON [schema].[TableName];
-  GO
-  SET IDENTITY_INSERT [schema].[TableName] ON;
-  GO
+  DECLARE @AssignedUserId INT;
+  DECLARE @TargetSpaceCode VARCHAR(50) = 'AUD-101';
+
+  -- 1. Insert Parent
+  INSERT INTO [schema].[USER] (full_name, email, role) 
+  VALUES ('Jane Doe', 'jane@test.com', 'student');
   
-  -- Insert statements here
+  -- 2. Capture Auto-Generated ID
+  SET @AssignedUserId = SCOPE_IDENTITY();
   
-  SET IDENTITY_INSERT [schema].[TableName] OFF;
-  GO
-  ENABLE TRIGGER [schema].[trigger_name] ON [schema].[TableName];
-  GO
+  -- 3. Insert Child using the captured ID
+  INSERT INTO [schema].[BOOKING] (requester_id, space_code, status) 
+  VALUES (@AssignedUserId, @TargetSpaceCode, 'pending');

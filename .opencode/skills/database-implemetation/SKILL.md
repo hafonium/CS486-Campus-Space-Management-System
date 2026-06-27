@@ -110,8 +110,11 @@ Use this when writing queries inside triggers, stored procedures, or validation 
 
 ## Review checklist
 Before finishing, verify:
-- all validated tables are implemented,
-- all validated keys and constraints are present,
-- foreign keys and nullability match the logical design,
-- DBMS-specific syntax is correct,
-- no unintended business rules were removed.
+- **Completeness:** All validated tables are fully implemented without placeholders.
+- **Structural Integrity:** All validated keys and constraints are physically present.
+- **Logical Alignment:** Foreign keys and nullability match the logical design exactly.
+- **Global Syntax Audit (T-SQL Pass):** Run a simulated top-to-bottom compilation scan of the entire generated script. Verify that:
+  1. Every single code line complies with strict Microsoft SQL Server (T-SQL) DDL syntax.
+  2. There are zero trailing commas `,` before closing parentheses `)` in all table blocks.
+  3. Every single `;THROW` statement in the entire file uses a clean, single-quoted literal string or a local variable (absolutely ban line-breaking string concatenation via `+` inside arguments).
+- **Business Logic Preservation:** No unintended business rules were removed or altered.
