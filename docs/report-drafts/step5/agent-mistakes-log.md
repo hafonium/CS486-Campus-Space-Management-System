@@ -37,3 +37,28 @@ Common T-SQL reserved keywords that frequently collide with domain entity names:
   - Before emitting DDL, cross-reference all table and column names against the T-SQL reserved keyword list.
   - Emit identifiers with `[ ]` escaping for any match.
   - Verify both `CREATE TABLE` names and all `REFERENCES` targets.
+
+
+### Iteration 5
+
+#### 1. Issues Encountered
+
+* **Missing database creation and setup:** The generated implementation script failed to create the overarching database for the system. It proceeded directly to table creation without provisioning the database container or ensuring a clean environment.
+
+#### 2. Root Cause
+
+* The implementation workflow overlooked the foundational step of explicitly creating the database and resetting its state prior to executing the DDL (Data Definition Language) statements.
+
+#### 3. Resolution
+
+* **Use Predefined Database Name:** Explicitly instruct the agent to always use the exact database name: `CampusSpaceManagementSystem`.
+* **Implement Clean State Provisioning:** Prepend the script with statements to safely drop the database if it already exists, ensuring a completely empty and fresh state before recreating it. The script must start with:
+```sql
+DROP DATABASE IF EXISTS CampusSpaceManagementSystem;
+CREATE DATABASE CampusSpaceManagementSystem;
+USE CampusSpaceManagementSystem;
+
+```
+
+
+* **Update Quality Checks:** Add a rule to `references/step-5-implementation-quality-checks.md` requiring the implementation script to always initialize, recreate, and connect to `CampusSpaceManagementSystem` before generating any schema objects.

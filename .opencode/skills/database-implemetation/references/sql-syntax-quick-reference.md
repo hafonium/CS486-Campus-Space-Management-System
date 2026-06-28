@@ -116,7 +116,7 @@ column_name INT REFERENCES other_table(pk_column)
 - **Reserved keyword escaping:** Wrap identifiers that match T-SQL reserved keywords in square brackets `[ ]` (e.g., `dbo.[USER]`, `[STATUS]`). Apply in `CREATE TABLE`, `REFERENCES`, and all DML statements. Always use `[ ]` for the `USER` table name.
 - **Constraint naming:** Use consistent prefixes: `pk_` (primary key), `fk_` (foreign key), `uq_` (unique), `chk_` (check), `df_` (default).
 - **Null handling:** Use `ISNULL(expr, replacement)` for single-column fallback; use `COALESCE(col1, col2, 'default')` when checking multiple columns in order until a non-null value is found.
-- **Trigger/procedure body:** Always include `SET NOCOUNT ON;` at the top of trigger and stored procedure bodies. Use `THROW 50000, 'message', 1;` (SQL Server 2012+) or `RAISERROR('message', 16, 1)` for validation failures.
+- **Trigger/procedure body:** Always include `SET NOCOUNT ON;` at the top of trigger and stored procedure bodies. For validation failures, use `;THROW 50000, 'message', 1;` with leading semicolon (SQL Server 2012+). Do not use `RAISERROR` — it lacks the automatic batch-termination behaviour of `THROW` and is harder to use correctly inside `BEGIN...END` blocks.
 - **THROW semicolon rule:** The statement immediately before `THROW` must be terminated with a semicolon. Inside `BEGIN...END` blocks, write `;THROW` (leading semicolon) to avoid the parser misinterpreting `BEGIN` as `BEGIN DIALOG CONVERSATION` (Service Broker). Example: `BEGIN ;THROW 50000, 'msg', 1; END`
 - **Comparison operators:** Use `=` (not `==`) and `<>` (not `!=`) for portable T-SQL. This applies equally to CHECK predicates and trigger conditions.
 
@@ -137,9 +137,7 @@ BEGIN
         WHERE <validation_condition>
     )
     BEGIN
-        THROW 50000, '<error message>', 1;
-        ROLLBACK TRANSACTION;
-        RETURN;
+        ;THROW 50000, '<error message>', 1;
     END;
 
     -- Forward valid operations

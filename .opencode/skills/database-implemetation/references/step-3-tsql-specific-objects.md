@@ -41,19 +41,11 @@ Review the logical design's Section 4 "Procedural Enforcement" for rules that re
 
 1. **Overlapping booking prevention:** Implement an `INSTEAD OF INSERT, UPDATE` trigger on `BOOKING` that checks for time-range overlaps with existing approved bookings for the same space.
 2. **Space availability gate:** Implement an `INSTEAD OF INSERT` trigger on `BOOKING` that joins with `SPACE` and rejects inserts when `SPACE.current_status IN ('under_maintenance', 'temporarily_closed', 'retired')`.
-3. Trigger template:
-   ```sql
-   CREATE TRIGGER trg_<table>_<purpose>
-   ON <table>
-   INSTEAD OF INSERT, UPDATE
-   AS
-   BEGIN
-       SET NOCOUNT ON;
-       -- validation logic
-       -- IF validation fails: RAISERROR('message', 16, 1); ROLLBACK;
-       -- IF validation passes: INSERT / UPDATE
-   END;
-   ```
+3. Trigger template — use the authoritative template from `references/sql-syntax-quick-reference.md` section "Trigger Validation Template":
+   - Always include `SET NOCOUNT ON;` at the top of the trigger body.
+   - Use `;THROW 50000, 'message', 1;` (leading semicolon) inside `BEGIN...END` blocks for validation failures.
+   - Do not use `RAISERROR` — prefer `;THROW` (SQL Server 2012+).
+   - After validation passes, forward the operation (INSERT or UPDATE) from `inserted`.
 
 ### State machine enforcement
 

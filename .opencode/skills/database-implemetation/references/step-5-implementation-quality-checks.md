@@ -54,7 +54,7 @@ For every table in the logical design:
 - [ ] Two-part names (`dbo.<object>`) are used consistently where applicable.
 - [ ] All table and column names have been checked against the T-SQL reserved keyword list. Any match is escaped with `[ ]` in `CREATE TABLE`, `REFERENCES`, and all DML statements.
 - [ ] `SET NOCOUNT ON` is present in trigger/procedure bodies.
-- [ ] `RAISERROR` (or `THROW` for SQL Server 2012+) is used for trigger validation failures.
+- [ ] `;THROW` (with leading semicolon, SQL Server 2012+) is used for trigger validation failures. `RAISERROR` is deprecated for new code.
 - [ ] Every `THROW` statement has a semicolon-terminated preceding statement (use `;THROW` inside `BEGIN...END` blocks to satisfy the parser).
 - [ ] `GO` batch separators are placed between independent statement groups.
 

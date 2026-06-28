@@ -117,11 +117,11 @@ Use `ISNULL(count(...), 0)` to replace null aggregation results with zero.
 ```sql
 -- Prefer:
 IF EXISTS (SELECT 1 FROM BOOKING WHERE space_code = @code AND booking_status = 'approved')
-  THROW 50000, 'Space already booked', 1;
+  ;THROW 50000, 'Space already booked', 1;
 
 -- Over:
 IF @code IN (SELECT space_code FROM BOOKING WHERE booking_status = 'approved')
-  THROW 50000, 'Space already booked', 1;
+  ;THROW 50000, 'Space already booked', 1;
 ```
 
 ---

@@ -40,28 +40,42 @@ The agent should expect:
 
 Before this step, read `references/step-1-implementation-readiness.md`.
 
-### 2. Translate schema objects
+### 2. Provision the database
+- **Always** start the implementation script by explicitly creating the database and resetting its state.
+- Use the exact database name: `CampusSpaceManagementSystem`.
+- Prepend the script with clean‑state provisioning:
+```sql
+DROP DATABASE IF EXISTS CampusSpaceManagementSystem;
+CREATE DATABASE CampusSpaceManagementSystem;
+USE CampusSpaceManagementSystem;
+GO
+```
+- Never skip this preamble — the script must not assume an existing database or a clean environment.
+
+Before this step, read `references/step-1-implementation-readiness.md`.
+
+### 3. Translate schema objects
 - Implement tables, columns, data types, primary keys, foreign keys, nullability, defaults, unique constraints, and check constraints.
 - Preserve the logical design faithfully.
 - Do not drop business rules that can be implemented structurally.
 
 Before this step, read `references/step-2-schema-object-translation.md` and `references/sql-syntax-quick-reference.md`.
 
-### 3. Implement database-specific objects
+### 4. Implement database-specific objects
 - Convert enums, domains, lookup tables, indexes, and key constraints into the appropriate T-SQL form for Microsoft SQL Server.
 - Implement triggers, procedures, or functions only when the design requires procedural enforcement.
 - Keep implementation consistent with the validated design and Microsoft SQL Server.
 
 Before this step, read `references/step-3-tsql-specific-objects.md` and `references/sql-query-and-optimization-guidelines.md`.
 
-### 4. Order statements correctly
+### 5. Order statements correctly
 - Create prerequisite objects before dependent objects.
 - Create tables before foreign keys that reference them.
 - Create indexes, triggers, and procedural objects after the referenced tables exist.
 
 Before this step, read `references/step-4-script-ordering.md`.
 
-### 5. Check implementation quality
+### 6. Check implementation quality
 - Verify that every table and relationship from the logical design has been implemented.
 - Verify that mandatory constraints were not weakened or omitted.
 - Verify that procedural rules are either implemented or clearly marked as deferred when the task scope does not include them.
@@ -78,10 +92,11 @@ Before this step, read `references/step-5-implementation-quality-checks.md`.
 ## Deliverable structure
 When producing Step 5, write the implementation into the requested output file (or the file named in the task context) using this general structure:
 
-1. Optional header comment with Microsoft SQL Server and any assumptions.
-2. Schema object definitions in dependency order.
-3. Constraints, indexes, and procedural objects.
-4. A short note only if some procedural rules are intentionally deferred.
+1. Database provisioning preamble (`DROP DATABASE IF EXISTS`, `CREATE DATABASE`, `USE`).
+2. Optional header comment with Microsoft SQL Server and any assumptions.
+3. Schema object definitions in dependency order.
+4. Constraints, indexes, and procedural objects.
+5. A short note only if some procedural rules are intentionally deferred.
 
 ## Reference Map
 
@@ -116,5 +131,7 @@ Before finishing, verify:
 - **Global Syntax Audit (T-SQL Pass):** Run a simulated top-to-bottom compilation scan of the entire generated script. Verify that:
   1. Every single code line complies with strict Microsoft SQL Server (T-SQL) DDL syntax.
   2. There are zero trailing commas `,` before closing parentheses `)` in all table blocks.
-  3. Every single `;THROW` statement in the entire file uses a clean, single-quoted literal string or a local variable (absolutely ban line-breaking string concatenation via `+` inside arguments).
+  3. Every `;THROW` statement uses a leading semicolon and a clean, single-quoted literal string or a local variable (absolutely ban line-breaking string concatenation via `+` inside arguments).
+  4. All table and column names have been checked against the T-SQL reserved keyword list; every match is escaped with `[ ]` in `CREATE TABLE`, `REFERENCES`, and all DML statements.
 - **Business Logic Preservation:** No unintended business rules were removed or altered.
+- **Database Provisioning:** The script starts with `DROP DATABASE IF EXISTS CampusSpaceManagementSystem;`, `CREATE DATABASE CampusSpaceManagementSystem;`, and `USE CampusSpaceManagementSystem;` before any schema object definitions.
