@@ -48,4 +48,4 @@
 * The LLM generates text word-by-word. When it wrote the static number "six," it had not yet expanded the full list. During the actual listing, it correctly applied the multi-role foreign key rules and outputted 7 items, creating an internal contradiction.
 
 #### 3. Resolution
-* Add one more bullet point in `SKILL.md` and ask the agent to check its counting.
+* Added a self-verification counting validation item to the `SKILL.md` review checklist.

@@ -1,4 +1,4 @@
-USE CampusSpaceManagement;
+USE CampusSpaceManagementSystem;
 GO
 
 -- 24125008 - Nguyen Gia Hao
@@ -81,18 +81,19 @@ Query 3
 - Target users: all user
 - Explanation: they can use this query for statistics, space consideration for booking, curiosity,...
 */
+WITH BOOKING_COUNT AS (
+    SELECT 
+        space_code, 
+        COUNT(*) AS booking_count
+    FROM dbo.BOOKING 
+    GROUP BY space_code
+)
+
 SELECT 
     *
 FROM dbo.SPACE S
-JOIN (
-    SELECT 
-        S.space_code, 
-        COUNT(B.booking_id) AS booking_count
-    FROM dbo.SPACE S
-    LEFT JOIN dbo.BOOKING B ON S.space_code = B.space_code
-    GROUP BY S.space_code
-) AS BC ON BC.space_code = S.space_code
-ORDER BY BC.booking_count DESC;
+LEFT JOIN BOOKING_COUNT BC ON BC.space_code = S.space_code
+ORDER BY booking_count DESC;
 GO
 
 
