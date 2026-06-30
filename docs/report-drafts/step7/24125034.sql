@@ -37,6 +37,7 @@ SELECT
     m.space_code,
     s.space_name,
     s.building,
+  s.floor,
     s.room_number,
     m.problem_description,
     m.start_time,
@@ -64,7 +65,7 @@ SELECT
 FROM dbo.BOOKING b
 INNER JOIN dbo.[USER] u ON b.requester_id = u.user_id
 WHERE b.booking_status IN ('checked_in', 'completed')
-  AND DATEDIFF(minute, b.requested_start_time, b.actual_start_time) > 15
+  AND b.actual_start_time > DATEADD(MINUTE, 15, b.requested_start_time)
 ORDER BY late_minutes DESC;
 GO
 
