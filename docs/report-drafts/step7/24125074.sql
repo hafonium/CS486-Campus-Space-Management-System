@@ -121,3 +121,30 @@ WHERE B.booking_status IN ('approved', 'rejected')
 GROUP BY U.user_id, U.full_name, U.department
 ORDER BY avg_lead_time_hours;
 GO
+
+
+/*
+Query 5
+- Business question: Which spaces have the highest number of maintenance cases 
+  in the last 90 days?
+- Target user: Facility Manager, Facility Staff
+- Explanation: Staff and managers can identify spaces that require frequent 
+  repairs and investigate underlying causes — such as aging infrastructure, 
+  heavy usage patterns, or inadequate facilities — and prioritize preventive 
+  maintenance or equipment upgrades for those locations.
+*/
+
+SELECT TOP 10
+    S.space_code,
+    S.space_name,
+    S.space_type,
+    S.building,
+    S.floor,
+    S.room_number,
+    COUNT(*) AS maintenance_count
+FROM dbo.MAINTENANCE_RECORD M
+JOIN dbo.SPACE S ON S.space_code = M.space_code
+WHERE M.start_time >= DATEADD(DAY, -90, GETDATE())
+GROUP BY S.space_code, S.space_name, S.space_type, S.building, S.floor, S.room_number
+ORDER BY maintenance_count DESC;
+GO
