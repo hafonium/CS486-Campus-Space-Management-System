@@ -12,44 +12,34 @@ Query 1
 to consider between different spaces and choose the best one for their purpose
 */
 
-DROP FUNCTION IF EXISTS dbo.getAvailableSpace;
+-- Define your intended booking schedule here
+DECLARE @start_time DATETIME = '2026-07-20 08:30:00'; -- Change this to the start time value you want
+DECLARE @end_time DATETIME = '2026-07-20 10:30:00';   -- Change this to the end time value you want
+
+SELECT *
+FROM dbo.SPACE
+WHERE 
+    @start_time > GETDATE()
+    AND @start_time < @end_time
+    AND current_status IN ('available', 'in_use')
+    AND space_code NOT IN (
+        SELECT space_code 
+        FROM dbo.BOOKING
+        WHERE 
+            (booking_status = 'approved' 
+            AND NOT (@end_time <= requested_start_time OR requested_end_time <= @start_time))
+            OR
+            (booking_status = 'checked_in'
+            AND NOT (requested_end_time <= @start_time))
+
+        UNION ALL 
+        
+        SELECT space_code 
+        FROM dbo.MAINTENANCE_RECORD
+        WHERE status IN ('reported', 'in_progress')
+    );
 GO
 
-CREATE FUNCTION getAvailableSpace(@start_time DATETIME, @end_time DATETIME) 
-RETURNS TABLE 
-AS 
-RETURN (
-    SELECT *
-    FROM dbo.SPACE
-    WHERE 
-        @start_time > GETDATE()
-        AND @start_time < @end_time
-        AND current_status IN ('available', 'in_use')
-        AND space_code NOT IN (
-            SELECT space_code 
-            FROM dbo.BOOKING
-            WHERE 
-                booking_status IN ('approved', 'checked_in')
-                AND NOT (actual_end_time <= @start_time OR @end_time <= actual_start_time)
-
-            UNION ALL 
-            
-            SELECT space_code 
-            FROM dbo.MAINTENANCE_RECORD
-            WHERE status IN ('reported', 'in_progress')
-        )
-)
-GO
--- Function Usage
-SELECT * 
-FROM dbo.getAvailableSpace('2026-06-26 12:00:00', '2026-06-26 17:00:00');
-
-SELECT * 
-FROM dbo.getAvailableSpace('2026-07-20 08:30:00', '2026-07-20 10:30:00');
-
-SELECT * 
-FROM dbo.getAvailableSpace('2026-12-01 08:00:00', '2026-12-01 12:00:00');
-GO
 
 /*
 Query 2
@@ -90,7 +80,8 @@ WITH BOOKING_COUNT AS (
 )
 
 SELECT 
-    *
+    S.*,
+    ISNULL(BC.booking_count, 0) AS booking_count
 FROM dbo.SPACE S
 LEFT JOIN BOOKING_COUNT BC ON BC.space_code = S.space_code
 ORDER BY booking_count DESC;
@@ -105,32 +96,18 @@ Query 4
 maintainance (having specific facilities for the space purpose,...)
 */
 
-DROP FUNCTION IF EXISTS dbo.getFacilityTypesBySpaceCode;
-GO
-CREATE FUNCTION getFacilityTypesBySpaceCode(@space_code VARCHAR(50))
-RETURNS TABLE 
-AS 
-RETURN (
-    SELECT 
-        F.facility_name,
-        COUNT(*) AS amount
-    FROM dbo.FACILITY F
-    JOIN dbo.SPACE_FACILITY SF ON F.facility_id = SF.facility_id
-    WHERE SF.space_code = @space_code
-    GROUP BY F.facility_name
-);
+-- Define the target space code here
+DECLARE @facility_space_code VARCHAR(50) = 'AUD-MC-1000'; -- Change this to the space code value you want
+
+SELECT 
+    F.facility_name,
+    COUNT(*) AS facility_count
+FROM dbo.FACILITY F
+JOIN dbo.SPACE_FACILITY SF ON F.facility_id = SF.facility_id
+WHERE SF.space_code = @facility_space_code
+GROUP BY F.facility_name;
 GO
 
--- Function Usage
-SELECT * 
-FROM dbo.getFacilityTypesBySpaceCode('AUD-101');
-
-SELECT * 
-FROM dbo.getFacilityTypesBySpaceCode('CLR-103');
-
-SELECT * 
-FROM dbo.getFacilityTypesBySpaceCode('CMP-301');
-GO
 
 /*
 Query 5
@@ -141,30 +118,22 @@ people who have responsibility for the damage (let say some bookings for a speci
 projector is broken', then the staff can trace back to the lastest booking which has 'final_condition: the projector is broken', then 
 the staff can contact the staff who checked in that space or the person who requested that space by 'requester_id' and 'requester_id')
 */
-DROP FUNCTION IF EXISTS dbo.getSpaceUsageHistory;
-GO
 
-CREATE FUNCTION getSpaceUsageHistory(@space_code VARCHAR(50))
-RETURNS TABLE 
-AS 
-RETURN (
-    SELECT 
-        booking_id,
-        requester_id,
-        check_in_staff_id,
-        actual_start_time,
-        initial_condition,
-        completion_staff_id,
-        actual_end_time,
-        final_condition,
-        usage_notes
-    FROM dbo.BOOKING
-    WHERE space_code = @space_code 
-      AND booking_status IN ('completed', 'checked_in')
-);
-GO
+-- Define the target space code here
+DECLARE @history_space_code VARCHAR(50) = 'AUD-MC-1000'; -- Change this to the space code value you want
 
--- Function Usage
-SELECT * FROM dbo.getSpaceUsageHistory('CMP-301')
+SELECT 
+    booking_id,
+    requester_id,
+    check_in_staff_id,
+    actual_start_time,
+    initial_condition,
+    completion_staff_id,
+    actual_end_time,
+    final_condition,
+    usage_notes
+FROM dbo.BOOKING
+WHERE space_code = @history_space_code 
+  AND booking_status IN ('completed', 'checked_in')
 ORDER BY actual_start_time DESC;
 GO

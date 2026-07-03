@@ -368,7 +368,7 @@ INSERT INTO dbo.BOOKING (
 -- ------------------------------------------------------------------------
 
 -- Normal Operation: Approved booking for a space currently marked in_use
--- Tests: trigger Rule 1 — 'in_use' is NOT blocked (only under_maintenance/temporarily_closed/retired are blocked)
+-- Tests: A in-use space must have a booking with status = 'checked_in'
 INSERT INTO dbo.BOOKING (
     requester_id, space_code, requested_start_time, requested_end_time,
     purpose, expected_participants, booking_status,
@@ -377,6 +377,24 @@ INSERT INTO dbo.BOOKING (
     @EmilyWong, 'PL-DC-3564', '2026-08-10 09:00:00', '2026-08-10 17:00:00',
     'workshop', 20, 'approved',
     @WeiZhang, '2026-07-20 13:00:00', 'Capstone design review workshop — approved. Ensure prototyping equipment is available for all 8 teams.'
+);
+
+-- ------------------------------------------------------------------------
+-- PL-DC-3564 bookings (project lab, in_use, cap 25)
+-- ------------------------------------------------------------------------
+
+-- Normal Operation: Checked_in booking for a space currently marked in_use
+-- Tests: trigger Rule 1 — 'in_use' is NOT blocked (only under_maintenance/temporarily_closed/retired are blocked)
+INSERT INTO dbo.BOOKING (
+    requester_id, space_code, requested_start_time, requested_end_time,
+    purpose, expected_participants, booking_status,
+    decision_staff_id, decision_time, decision_note,
+    actual_start_time, check_in_staff_id, initial_condition
+) VALUES (
+    @EmilyWong, 'PL-DC-3564', '2026-07-02 09:00:00', '2026-07-02 17:00:00',
+    'workshop', 20, 'checked_in',
+    @WeiZhang, '2026-06-29 13:00:00', 'Capstone design review workshop — approved. Ensure prototyping equipment is available for all 8 teams.',
+    '2026-07-02 09:15:00', @MichaelDavis, 'Room left in good condition. All equipment powered down.'
 );
 
 -- ------------------------------------------------------------------------
