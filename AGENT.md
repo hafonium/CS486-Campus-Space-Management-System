@@ -1,1 +1,0 @@
-DO NOT READ ANYTHING IN docs/ folder.
